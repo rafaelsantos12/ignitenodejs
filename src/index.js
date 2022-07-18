@@ -1,4 +1,4 @@
-const { response } = require("express");
+const { response, request, Router } = require("express");
 const { v4: uuidv4 } = require("uuid");
 
 const express = require("express");
@@ -6,22 +6,43 @@ const app = express();
 
 app.use(express.json());
 
-const customer = [];
+const customers = [];
 
 app.post("/account", (request, response) => {
   const { cpf, name } = request.body;
-  const id = uuidv4();
 
-  customer.push({
+  const customerAlreadyExists = customers.some(
+    (customer) => customer.cpf === cpf
+  );
+
+  if (customerAlreadyExists) {
+    return response
+      .status(400)
+      .json({ error: "Conta com esse CPF já existente" });
+  }
+
+  customers.push({
     name,
     cpf,
-    id,
+    id: uuidv4(),
     statement: [],
   });
 
-  console.log("Dado cadastrado", customer);
+  console.log("Dado cadastrado", customers);
 
   return response.status(201).send();
+});
+
+app.get("/statement", (request, response) => {
+  const { cpf } = request.headers;
+
+  const customer = customers.find((customer) => customer.cpf === cpf);
+
+  if (!customer) {
+    return response.status(400).json({ error: "Nenhum statement encontrado" });
+  }
+
+  return response.json(customer.statement);
 });
 
 app.listen(3333);
